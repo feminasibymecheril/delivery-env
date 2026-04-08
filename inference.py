@@ -1,5 +1,21 @@
+import os
+from openai import OpenAI
 import asyncio
 from env import DeliveryEnv, Action
+
+# ----------------------------
+# REQUIRED ENV VARIABLES
+# ----------------------------
+
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+MODEL_NAME = os.getenv("MODEL_NAME", "dummy-model")
+HF_TOKEN = os.getenv("HF_TOKEN")  # optional
+
+# OpenAI client (required by checklist)
+client = OpenAI(
+    base_url=API_BASE_URL,
+    api_key=HF_TOKEN
+)
 
 MAX_STEPS = 50
 
