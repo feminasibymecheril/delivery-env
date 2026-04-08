@@ -1,5 +1,6 @@
 id: delivery-env
 name: Delivery Optimization Environment
+description: AI-powered delivery environment
 
 entry_point: env:DeliveryEnv
 
@@ -15,3 +16,9 @@ tasks:
   - id: hard
     description: Deliver the package
     grader: tasks:task_hard
+
+observation_space:
+  type: object
+
+action_space:
+  type: integer
