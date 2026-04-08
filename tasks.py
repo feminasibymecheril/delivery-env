@@ -1,5 +1,4 @@
 from env import DeliveryEnv, Action
-
 def task_easy(env):
     env.reset()
     return 1.0
