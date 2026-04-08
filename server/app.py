@@ -11,11 +11,18 @@ def root():
 
 @app.post("/reset")
 def reset():
-    return env.reset()
+    obs = env.reset()
+    return obs.dict()
 
 @app.post("/step")
 def step(action: Action):
-    return env.step(action)
+    result = env.step(action)
+    return {
+        "observation": result.observation.dict(),
+        "reward": result.reward,
+        "done": result.done,
+        "info": result.info
+    }
 
 # ✅ REQUIRED for OpenEnv
 def main():
