@@ -9,7 +9,7 @@ env = DeliveryEnv()
 def root():
     return {"status": "DeliveryEnv running"}
 
-@app.get("/reset")
+@app.post("/reset")
 def reset():
     return env.reset()
 
