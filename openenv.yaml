@@ -5,13 +5,13 @@ entry_point: env:DeliveryEnv
 
 tasks:
   - id: easy
-    description: Assign agent to reach a pickup location efficiently
-    grader: graders:grade_easy
+    description: Reach the package
+    grader: tasks:task_easy
 
   - id: medium
-    description: Perform successful package pickup under constraints
-    grader: graders:grade_medium
+    description: Pick the package
+    grader: tasks:task_medium
 
   - id: hard
-    description: Complete full delivery workflow optimizing movement and decisions
-    grader: graders:grade_hard
+    description: Deliver the package
+    grader: tasks:task_hard
