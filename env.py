@@ -15,7 +15,7 @@ class Observation(BaseModel):
     obstacles: List[Tuple[int, int]]
 
 class Action(BaseModel):
-    action: int  # 0-5
+    action: int  # 0=up, 1=down, 2=left, 3=right, 4=pick, 5=deliver
 
 class StepResult(BaseModel):
     observation: Observation
@@ -30,10 +30,11 @@ class StepResult(BaseModel):
 class DeliveryEnv:
     GRID_SIZE = 5
 
-    def __init__(self, num_packages=1, num_obstacles=3, max_steps=50):
+    def __init__(self, num_packages=1, num_obstacles=0, max_steps=50):
         self.num_packages = num_packages
         self.num_obstacles = num_obstacles
         self.max_steps = max_steps
+        self.delivered_count = 0  # ← ADDED
         self.reset()
 
     # ----------------------------
@@ -52,6 +53,7 @@ class DeliveryEnv:
     # ----------------------------
     def reset(self) -> Observation:
         self.steps = 0
+        self.delivered_count = 0  # ← ADDED: reset delivery counter
 
         self.robot = (random.randint(0, 4), random.randint(0, 4))
 
@@ -146,6 +148,7 @@ class DeliveryEnv:
                 self.has_package = False
                 reward += 20
                 self.current_package_idx += 1
+                self.delivered_count += 1  # ← ADDED: track deliveries
 
                 if self.current_package_idx >= self.num_packages:
                     done = True
@@ -163,5 +166,90 @@ class DeliveryEnv:
             observation=self.state(),
             reward=reward,
             done=done,
-            info={}
+            info={
+                "delivered_count": self.delivered_count,  # ← ADDED: expose in info
+                "steps_used": self.steps,
+            }
         )
+
+
+# ----------------------------
+# GRADER FUNCTIONS
+# ----------------------------
+
+def grade_easy(state: dict) -> float:
+    """
+    Easy: Deliver 1 package with no obstacles. 50 steps allowed.
+    Score based on completion + efficiency.
+    """
+    if state.get("delivered_count", 0) >= 1:
+        steps_used = state.get("steps_used", 50)
+        efficiency = 1.0 - (steps_used / 50)
+        return round(0.6 + 0.399 * efficiency, 3)
+    return 0.001
+
+
+def grade_medium(state: dict) -> float:
+    """
+    Medium: Deliver 2 packages with 3 obstacles. 50 steps allowed.
+    Score based on partial completion ratio.
+    """
+    delivered = state.get("delivered_count", 0)
+    total = state.get("total_packages", 2)
+    if delivered == 0:
+        return 0.001
+    score = delivered / total
+    return round(min(0.999, score * 0.999), 3)
+
+
+def grade_hard(state: dict) -> float:
+    """
+    Hard: Deliver 3 packages with 5 obstacles. Only 30 steps allowed.
+    Score based on completion ratio + efficiency under tight budget.
+    """
+    delivered = state.get("delivered_count", 0)
+    total = state.get("total_packages", 3)
+    steps_used = state.get("steps_used", 0)
+    max_steps = state.get("max_steps", 30)
+
+    if delivered == 0:
+        return 0.001
+
+    completion_ratio = delivered / total
+    efficiency_ratio = 1.0 - (steps_used / max_steps)
+    score = 0.7 * completion_ratio + 0.3 * efficiency_ratio
+    return round(min(0.999, max(0.001, score)), 3)
+
+
+# ----------------------------
+# TASK DEFINITIONS (REQUIRED)
+# ----------------------------
+
+TASKS = [
+    {
+        "task_id": "easy",
+        "description": "Deliver 1 package to its goal on a 5x5 grid with no obstacles. 50 steps allowed.",
+        "num_packages": 1,
+        "num_obstacles": 0,
+        "max_steps": 50,
+        "grader": grade_easy,
+    },
+    {
+        "task_id": "medium",
+        "description": "Deliver 2 packages to their goals on a 5x5 grid with 3 obstacles. 50 steps allowed.",
+        "num_packages": 2,
+        "num_obstacles": 3,
+        "max_steps": 50,
+        "grader": grade_medium,
+    },
+    {
+        "task_id": "hard",
+        "description": "Deliver 3 packages with 5 obstacles under a tight 30-step budget.",
+        "num_packages": 3,
+        "num_obstacles": 5,
+        "max_steps": 30,
+        "grader": grade_hard,
+    },
+]
+
+TASKS_BY_ID = {t["task_id"]: t for t in TASKS}
