@@ -227,7 +227,7 @@ def grade_hard(state: dict) -> float:
 
 TASKS = [
     {
-        "task_id": "easy",
+        "id": "easy",
         "description": "Deliver 1 package to its goal on a 5x5 grid with no obstacles. 50 steps allowed.",
         "num_packages": 1,
         "num_obstacles": 0,
@@ -235,7 +235,7 @@ TASKS = [
         "grader": grade_easy,
     },
     {
-        "task_id": "medium",
+        "id": "medium",
         "description": "Deliver 2 packages to their goals on a 5x5 grid with 3 obstacles. 50 steps allowed.",
         "num_packages": 2,
         "num_obstacles": 3,
@@ -243,7 +243,7 @@ TASKS = [
         "grader": grade_medium,
     },
     {
-        "task_id": "hard",
+        "id": "hard",
         "description": "Deliver 3 packages with 5 obstacles under a tight 30-step budget.",
         "num_packages": 3,
         "num_obstacles": 5,
@@ -253,5 +253,5 @@ TASKS = [
 ]
 
 
-TASKS_BY_ID = {t["task_id"]: t for t in TASKS}
+TASKS_BY_ID = {t["id"]: t for t in TASKS}
 
