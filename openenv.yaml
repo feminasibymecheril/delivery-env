@@ -1,24 +1,16 @@
-id: delivery-env
-name: Delivery Optimization Environment
-description: AI-powered delivery environment
+name: ai-delivery-env
 
-entry_point: env:DeliveryEnv
+entrypoint: server.app:app
 
 tasks:
   - id: easy
-    description: Reach the package
-    grader: tasks:task_easy
+    entrypoint: tasks:task_easy
+    grader: tasks:grade_easy
 
   - id: medium
-    description: Pick the package
-    grader: tasks:task_medium
+    entrypoint: tasks:task_medium
+    grader: tasks:grade_medium
 
   - id: hard
-    description: Deliver the package
-    grader: tasks:task_hard
-
-observation_space:
-  type: object
-
-action_space:
-  type: integer
+    entrypoint: tasks:task_hard
+    grader: tasks:grade_hard
