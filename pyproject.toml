@@ -16,3 +16,4 @@ server = "server.app:main"
 
 [tool.openenv]
 entry_point = "env:DeliveryEnv"
+tasks_module = "tasks"
