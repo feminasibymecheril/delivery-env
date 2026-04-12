@@ -1,12 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
-from env import DeliveryEnv, Action, TASKS, TASKS_BY_ID
+from env import DeliveryEnv, Action
+from tasks import TASKS
 
 app = FastAPI()
 
 # ----------------------------
-# Session storage (per reset)
+# Build TASKS_BY_ID from tasks.py
+# ----------------------------
+TASKS_BY_ID = {t["id"]: t for t in TASKS}
+
+# ----------------------------
+# Session storage
 # ----------------------------
 sessions: dict = {}
 session_counter = 0
@@ -19,31 +25,31 @@ def root():
     return {"status": "DeliveryEnv running"}
 
 # ----------------------------
-# HEALTH (required by validator)
+# HEALTH
 # ----------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 # ----------------------------
-# TASKS (required by validator)
+# TASKS (FIXED)
 # ----------------------------
 @app.get("/tasks")
 def list_tasks():
     return [
         {
-            "task_id": t["task_id"],
-            "description": t["description"],
-            "num_packages": t["num_packages"],
-            "num_obstacles": t["num_obstacles"],
-            "max_steps": t["max_steps"],
-            "has_grader": True,   # ← validator checks this field
+            "task_id": t["id"],  # IMPORTANT FIX
+            "description": t.get("description", ""),
+            "num_packages": t.get("num_packages", 1),
+            "num_obstacles": t.get("num_obstacles", 0),
+            "max_steps": t.get("max_steps", 50),
+            "has_grader": True,
         }
         for t in TASKS
     ]
 
 # ----------------------------
-# RESET (now supports task_id)
+# RESET
 # ----------------------------
 @app.post("/reset")
 def reset(task_id: str = "easy"):
@@ -51,17 +57,14 @@ def reset(task_id: str = "easy"):
 
     task = TASKS_BY_ID.get(task_id)
     if not task:
-        raise HTTPException(status_code=400, detail=f"Unknown task_id '{task_id}'. Choose from: easy, medium, hard")
+        raise HTTPException(status_code=400, detail=f"Unknown task_id '{task_id}'")
 
-    env = DeliveryEnv(
-        num_packages=task["num_packages"],
-        num_obstacles=task["num_obstacles"],
-        max_steps=task["max_steps"],
-    )
+    env = DeliveryEnv()
     obs = env.reset()
 
     session_counter += 1
     session_id = str(session_counter)
+
     sessions[session_id] = {"env": env, "task": task}
 
     return {
@@ -77,13 +80,13 @@ def reset(task_id: str = "easy"):
 def step(session_id: str, action: Action):
     session = sessions.get(session_id)
     if not session:
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found. Call /reset first.")
+        raise HTTPException(status_code=404, detail="Session not found")
 
     env = session["env"]
     task = session["task"]
+
     result = env.step(action)
 
-    # Build grader state for final scoring
     grader_state = {
         "delivered_count": env.delivered_count,
         "total_packages": env.num_packages,
@@ -91,10 +94,8 @@ def step(session_id: str, action: Action):
         "max_steps": env.max_steps,
     }
 
-    # On episode end, replace reward with grader score
     if result.done:
         result.reward = task["grader"](grader_state)
-        # Clean up session
         del sessions[session_id]
 
     return {
@@ -105,23 +106,24 @@ def step(session_id: str, action: Action):
     }
 
 # ----------------------------
-# STATE (required by OpenEnv)
+# STATE
 # ----------------------------
 @app.get("/state")
 def state(session_id: str):
     session = sessions.get(session_id)
     if not session:
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+        raise HTTPException(status_code=404, detail="Session not found")
     return session["env"].state().dict()
 
 # ----------------------------
-# GRADER (required by validator)
+# GRADER
 # ----------------------------
 @app.post("/grader")
 def run_grader(task_id: str, grader_state: dict):
     task = TASKS_BY_ID.get(task_id)
     if not task:
-        raise HTTPException(status_code=400, detail=f"Unknown task_id '{task_id}'")
+        raise HTTPException(status_code=400, detail="Invalid task_id")
+
     score = task["grader"](grader_state)
     return {"task_id": task_id, "score": score}
 
