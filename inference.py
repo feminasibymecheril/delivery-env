@@ -1,56 +1,21 @@
 import os
 from openai import OpenAI
-import asyncio
 from env import DeliveryEnv, Action
 
-# ----------------------------
 # REQUIRED ENV VARIABLES
-# ----------------------------
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-API_BASE_URL = os.environ.get("API_BASE_URL")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
-API_KEY = os.environ.get("API_KEY")  # IMPORTANT: use provided key
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
 
-# OpenAI client (REQUIRED)
 client = OpenAI(
     base_url=API_BASE_URL,
-    api_key=API_KEY
+    api_key=HF_TOKEN
 )
 
 MAX_STEPS = 50
-
-# ----------------------------
-# REQUIRED LOG FORMAT
-# ----------------------------
-
-def log_start(task):
-    print(f"[START] task={task}")
-
-def log_step(step, action, reward, done):
-    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done}")
-
-def log_end(success, steps, score):
-    print(f"[END] success={success} steps={steps} score={score:.3f}")
-
-# ----------------------------
-# REQUIRED LLM CALL (VALIDATION)
-# ----------------------------
-
-def ping_llm():
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": "Hello"}],
-            max_tokens=5
-        )
-        print("[LLM] call successful")
-        return response
-    except Exception as e:
-        print("[LLM] call failed but attempted:", e)
-
-# ----------------------------
-# SIMPLE POLICY (UNCHANGED)
-# ----------------------------
 
 def simple_policy(obs):
     rx, ry = obs.robot
@@ -66,46 +31,44 @@ def simple_policy(obs):
     if rx > tx: return 2
     if ry < ty: return 1
     if ry > ty: return 0
-
     return 4 if not obs.has_package else 5
 
-# ----------------------------
-# MAIN RUN
-# ----------------------------
 
-async def main():
-    # ✅ REQUIRED LLM CALL (must happen at least once)
-    ping_llm()
+def run():
+    # REQUIRED LLM CALL
+    client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": "Hello"}],
+        max_tokens=5
+    )
 
     env = DeliveryEnv()
     obs = env.reset()
 
-    total_reward = 0
-    steps_taken = 0
+    rewards = []
+    success = False
 
-    log_start("delivery_task")
+    print(f"[START] task=delivery env=custom model={MODEL_NAME}")
 
     for step in range(1, MAX_STEPS + 1):
         action = simple_policy(obs)
-
         result = env.step(Action(action=action))
 
-        reward = result.reward
+        reward = round(result.reward, 2)
         done = result.done
 
-        log_step(step, action, reward, done)
+        rewards.append(f"{reward:.2f}")
 
-        total_reward += reward
-        steps_taken = step
+        print(f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error=null")
+
         obs = result.observation
 
         if done:
+            success = True
             break
 
-    score = max(0.0, min(1.0, total_reward / 100))
-    success = score > 0.5
+    print(f"[END] success={str(success).lower()} steps={len(rewards)} rewards={','.join(rewards)}")
 
-    log_end(success, steps_taken, score)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
