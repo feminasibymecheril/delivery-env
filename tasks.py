@@ -22,19 +22,7 @@ def task_hard(env):
 
 
 TASKS = [
-    {
-        "id": "easy",
-        "entrypoint": task_easy,
-        "grader": grade_easy,
-    },
-    {
-        "id": "medium",
-        "entrypoint": task_medium,
-        "grader": grade_medium,
-    },
-    {
-        "id": "hard",
-        "entrypoint": task_hard,
-        "grader": grade_hard,
-    },
+    {"id": "easy", "entrypoint": task_easy, "grader": grade_easy},
+    {"id": "medium", "entrypoint": task_medium, "grader": grade_medium},
+    {"id": "hard", "entrypoint": task_hard, "grader": grade_hard},
 ]
